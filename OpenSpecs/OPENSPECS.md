@@ -7,6 +7,38 @@
 
 ---
 
+## Git Branching SOP
+
+### Branch Strategy
+
+| Branch | Purpose |
+|--------|---------|
+| `main` | Stable, working code only. Every commit here must be a confirmed working state. |
+| `feature/<name>` | All new work. Created from `main`, merged back when done and verified. |
+
+### Rules
+- **Never commit directly to `main`** unless it is a hotfix on an already-working system.
+- Every new feature, fix, or experiment starts on a `feature/` branch.
+- Merge to `main` only after the feature is confirmed working.
+- Commit messages should be descriptive: `feat:`, `fix:`, `chore:`, `docs:` prefixes.
+
+### Workflow
+```
+1. Create branch:   git checkout -b feature/<name>
+2. Do the work
+3. Commit:          git add . && git commit -m "feat: ..."
+4. Push branch:     git push origin feature/<name>
+5. Verify it works
+6. Merge to main:   git checkout main && git merge feature/<name>
+7. Push main:       git push origin main
+8. Delete branch:   git branch -d feature/<name>
+```
+
+### Via Dashboard Git Panel
+The ⬡ GIT panel currently supports commit and push to `main`. Branch management (create, switch, merge) will be added in a future update.
+
+---
+
 ## Overview
 
 LitXusDevHub is the central orchestrator for all LitXus development systems. It provides a live web dashboard to start, stop, build, and monitor every system in the LitXus ecosystem from a single browser tab.

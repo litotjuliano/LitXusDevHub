@@ -331,9 +331,15 @@ var server = http.createServer(function(req, res) {
   }
 
   if (url === '/api/git/push' && method === 'POST') {
-    exec('git push origin master', { cwd: BASE, shell: true }, function(err, stdout, stderr) {
-      if (err) return send(res, 200, { success: false, message: stderr || err.message });
-      send(res, 200, { success: true, message: 'Pushed to origin/master' });
+    var remoteUrl = 'https://github.com/litotjuliano/LitXusDevHub.git';
+    exec('git remote get-url origin', { cwd: BASE, shell: true }, function(err) {
+      var setRemote = err
+        ? 'git remote add origin ' + remoteUrl + ' && '
+        : 'git remote set-url origin ' + remoteUrl + ' && ';
+      exec(setRemote + 'git push origin master', { cwd: BASE, shell: true }, function(err2, stdout, stderr) {
+        if (err2) return send(res, 200, { success: false, message: stderr || err2.message });
+        send(res, 200, { success: true, message: 'Pushed to origin/master' });
+      });
     });
     return;
   }

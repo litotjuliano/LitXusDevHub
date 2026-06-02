@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LitXusDevHub</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3f;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --accent3: #43e97b;
+    --accent4: #f7971e;
+    --text: #e8e8f0;
+    --text-muted: #6b6b8a;
+    --running: #43e97b;
+    --stopped: #ff6584;
+    --building: #f7971e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .last-sync { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+  .refresh-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 600;
+    transition: all 0.2s;
+  }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .refresh-btn.loading { opacity: 0.6; pointer-events: none; }
+
+  /* Stats */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+
+  .stat-icon {
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+
+  .stat-icon.purple { background: rgba(108,99,255,0.15); }
+  .stat-icon.green  { background: rgba(67,233,123,0.15); }
+  .stat-icon.red    { background: rgba(255,101,132,0.15); }
+  .stat-icon.orange { background: rgba(247,151,30,0.15); }
+
+  .stat-num { font-size: 26px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
+  .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: #3a3a5f; }
+
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .badge {
+    background: var(--accent2);
+    color: white;
+    font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 20px;
+    font-family: 'Space Mono', monospace;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} }
+
+  /* Systems */
+  .systems-card { grid-column: 1 / 3; }
+
+  .system-group {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
+  .system-group-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px;
+    background: rgba(108,99,255,0.07);
+    border-bottom: 1px solid var(--border);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .system-group .system-item {
+    border-radius: 0;
+    margin-bottom: 0;
+    border: none;
+    border-bottom: 1px solid rgba(42,42,63,0.5);
+  }
+
+  .system-group .system-item:last-child { border-bottom: none; }
+
+  .system-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--surface2);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+  .system-item:hover { border-color: var(--border); }
+
+  .system-left { display: flex; align-items: center; gap: 12px; }
+
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .status-dot.running  { background: var(--running); box-shadow: 0 0 8px var(--running); animation: glow 1.5s infinite; }
+  .status-dot.stopped  { background: var(--stopped); }
+  .status-dot.building { background: var(--building); animation: glow-b 1s infinite; }
+
+  @keyframes glow   { 0%,100%{box-shadow:0 0 6px var(--running)}  50%{box-shadow:0 0 14px var(--running)} }
+  @keyframes glow-b { 0%,100%{box-shadow:0 0 6px var(--building)} 50%{box-shadow:0 0 14px var(--building)} }
+
+  .system-name { font-size: 14px; font-weight: 600; }
+  .system-port { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+  .system-status-label {
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    padding: 3px 8px; border-radius: 6px;
+  }
+  .system-status-label.running  { background: rgba(67,233,123,0.12); color: var(--running); }
+  .system-status-label.stopped  { background: rgba(255,101,132,0.12); color: var(--stopped); }
+  .system-status-label.building { background: rgba(247,151,30,0.12);  color: var(--building); }
+
+  .system-actions { display: flex; gap: 6px; }
+
+  a.action-btn {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .action-btn {
+    padding: 6px 12px; border-radius: 7px;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--text);
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    cursor: pointer; transition: all 0.15s; font-weight: 700;
+  }
+  .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .action-btn.start:hover   { background: rgba(67,233,123,0.15);  border-color: var(--running);  color: var(--running);  }
+  .action-btn.stop:hover    { background: rgba(255,101,132,0.15); border-color: var(--stopped);  color: var(--stopped);  }
+  .action-btn.build:hover   { background: rgba(247,151,30,0.15);  border-color: var(--building); color: var(--building); }
+  .action-btn.browse:hover  { background: rgba(108,99,255,0.15);  border-color: var(--accent);   color: var(--accent);   }
+  .action-btn.refresh:hover { background: rgba(108,99,255,0.15);  border-color: var(--accent);   color: var(--accent);   }
+
+  /* Notifications */
+  .notif-card { grid-column: 3; grid-row: 1 / 3; }
+
+  .notif-item {
+    padding: 14px; background: var(--surface2);
+    border-radius: 10px; margin-bottom: 10px;
+    border-left: 3px solid var(--accent);
+    transition: all 0.2s;
+  }
+  .notif-item.processed { border-left-color: var(--text-muted); opacity: 0.45; }
+  .notif-item.report    { border-left-color: var(--running); }
+
+  .notif-from { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--accent); margin-bottom: 4px; }
+  .notif-item.report .notif-from { color: var(--running); }
+
+  .notif-file { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text); margin-bottom: 4px; }
+  .notif-time { font-size: 10px; color: var(--text-muted); }
+
+  .notif-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .notif-btn {
+    flex: 1; padding: 5px;
+    border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-muted);
+    font-family: 'Space Mono', monospace; font-size: 9px;
+    cursor: pointer; transition: all 0.15s; font-weight: 700;
+  }
+  .notif-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(108,99,255,0.1); }
+
+  /* UAT Table */
+  .uat-card { grid-column: 1 / 3; }
+
+  .uat-table { width: 100%; border-collapse: collapse; }
+  .uat-table th {
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text-muted); text-align: left;
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+  }
+  .uat-table td {
+    padding: 12px; font-size: 13px;
+    border-bottom: 1px solid rgba(42,42,63,0.5); vertical-align: middle;
+  }
+  .uat-table tr:last-child td { border-bottom: none; }
+  .uat-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .version-tag {
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    background: var(--surface2); padding: 3px 8px;
+    border-radius: 5px; border: 1px solid var(--border);
+  }
+
+  .result-tag {
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    padding: 3px 8px; border-radius: 5px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .result-tag.passed  { background: rgba(67,233,123,0.12); color: var(--running); }
+  .result-tag.failed  { background: rgba(255,101,132,0.12); color: var(--stopped); }
+  .result-tag.pending { background: rgba(108,99,255,0.12);  color: var(--accent); }
+
+  /* Empty & Error states */
+  .empty { text-align: center; padding: 30px; color: var(--text-muted); font-size: 13px; }
+  .error-state {
+    text-align: center; padding: 20px;
+    color: var(--stopped); font-family: 'Space Mono', monospace; font-size: 11px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 18px; font-size: 13px;
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.3s; z-index: 100;
+    font-family: 'Space Mono', monospace;
+  }
+  .toast.show  { transform: translateY(0); opacity: 1; }
+  .toast.ok    { border-color: var(--running);  color: var(--running); }
+  .toast.warn  { border-color: var(--building); color: var(--building); }
+  .toast.fail  { border-color: var(--stopped);  color: var(--stopped); }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⬡</div>
+      <h1>LitXus<span>DevHub</span></h1>
+    </div>
+    <div class="header-right">
+      <span class="last-sync" id="lastSync">Connecting...</span>
+      <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">↻ Refresh</button>
+    </div>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-icon purple">⬡</div>
+      <div><div class="stat-num" id="totalSystems">—</div><div class="stat-label">Total Systems</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">▶</div>
+      <div><div class="stat-num" id="runningSystems">—</div><div class="stat-label">Running</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red">🔔</div>
+      <div><div class="stat-num" id="pendingNotifs">—</div><div class="stat-label">Notifications</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">📋</div>
+      <div><div class="stat-num" id="activeUAT">—</div><div class="stat-label">Active UAT</div></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card systems-card">
+      <div class="card-header"><span class="card-title">Systems Status</span></div>
+      <div id="systemsList"><div class="empty">Loading...</div></div>
+    </div>
+
+    <div class="card notif-card">
+      <div class="card-header">
+        <span class="card-title">Notifications</span>
+        <span class="badge" id="notifBadge" style="display:none">0</span>
+      </div>
+      <div id="notifList"><div class="empty">Loading...</div></div>
+    </div>
+
+    <div class="card uat-card">
+      <div class="card-header"><span class="card-title">UAT Tracker</span></div>
+      <table class="uat-table">
+        <thead>
+          <tr>
+            <th>Project</th><th>Version</th><th>Date</th><th>Result</th><th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="uatTableBody"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:5000';
+let registry = null;
+
+// ─── API CALLS ────────────────────────────────────────────────────────────────
+async function apiFetch(endpoint, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + endpoint, opts);
+  return res.json();
+}
+
+// ─── LOAD ALL ─────────────────────────────────────────────────────────────────
+async function loadAll() {
+  const btn = document.getElementById('refreshBtn');
+  btn.textContent = '↻ Syncing...';
+  btn.classList.add('loading');
+
+  try {
+    registry = await apiFetch('/api/registry');
+    renderSystems();
+    renderNotifications();
+    renderUAT();
+    updateStats();
+    document.getElementById('lastSync').textContent =
+      'Last sync: ' + new Date().toLocaleTimeString('en-MY');
+    showToast('✅ Synced with registry', 'ok');
+  } catch (e) {
+    document.getElementById('systemsList').innerHTML =
+      '<div class="error-state">❌ Cannot connect to server.<br>Run: node server.js in LitXusDevHub folder</div>';
+    document.getElementById('lastSync').textContent = 'Server offline';
+    showToast('❌ Server not reachable', 'fail');
+  } finally {
+    btn.textContent = '↻ Refresh';
+    btn.classList.remove('loading');
+  }
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function systemItemHTML(sys) {
+  return `
+    <div class="system-item" id="sys-${sys.name}">
+      <div class="system-left">
+        <div class="status-dot ${sys.status}"></div>
+        <div>
+          <div class="system-name">${sys.name}</div>
+          <div class="system-port">:${sys.port} · ${sys.description}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="system-status-label ${sys.status}">${sys.status.toUpperCase()}</span>
+        <div class="system-actions">
+          ${sys.status !== 'running' && sys.name !== 'LitXusDevHub'
+            ? `<button class="action-btn start" onclick="doAction('${sys.name}','start')">▶ START</button>` : ''}
+          ${sys.status === 'running' && sys.name !== 'LitXusDevHub'
+            ? `<button class="action-btn stop"  onclick="doAction('${sys.name}','stop')">■ STOP</button>` : ''}
+          <button class="action-btn build"   onclick="doAction('${sys.name}','build')">⚙ BUILD</button>
+          <button class="action-btn refresh" onclick="doAction('${sys.name}','refresh')">↻</button>
+          ${sys.urls ? `
+            ${sys.urls.swagger ? `<a class="action-btn browse" href="${sys.urls.swagger}" target="_blank" rel="noopener">⬡ SWAGGER</a>` : sys.urls.backend ? `<a class="action-btn browse" href="${sys.urls.backend}" target="_blank" rel="noopener">⬡ API</a>` : ''}
+            ${sys.urls.frontend ? `<a class="action-btn browse" href="${sys.urls.frontend}" target="_blank" rel="noopener">🌐 ${sys.frontendLabel || 'OPEN FRONTEND'}</a>` : ''}
+          ` : `
+            <a class="action-btn browse" href="http://localhost:${sys.port}" target="_blank" rel="noopener">⬡ BROWSE</a>
+          `}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderSystems() {
+  const list = document.getElementById('systemsList');
+  if (!registry?.systems?.length) {
+    list.innerHTML = '<div class="empty">No systems found</div>';
+    return;
+  }
+
+  // Separate grouped from standalone
+  const grouped = {};
+  const standalone = [];
+  registry.systems.forEach(sys => {
+    if (sys.group) {
+      if (!grouped[sys.group]) grouped[sys.group] = [];
+      grouped[sys.group].push(sys);
+    } else {
+      standalone.push(sys);
+    }
+  });
+
+  let html = standalone.map(sys => systemItemHTML(sys)).join('');
+
+  Object.entries(grouped).forEach(([groupName, systems]) => {
+    const allRunning = systems.every(s => s.status === 'running');
+    const anyRunning = systems.some(s => s.status === 'running');
+    const dot = allRunning ? 'running' : anyRunning ? 'building' : 'stopped';
+    html += `
+      <div class="system-group">
+        <div class="system-group-header">
+          <div class="status-dot ${dot}" style="flex-shrink:0"></div>
+          ⬡ ${groupName}
+        </div>
+        ${systems.map(sys => systemItemHTML(sys)).join('')}
+      </div>`;
+  });
+
+  list.innerHTML = html;
+
+  const running = registry.systems.filter(s => s.status === 'running').length;
+  document.getElementById('runningSystems').textContent = running;
+  document.getElementById('totalSystems').textContent = registry.systems.length;
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notifList');
+  const badge = document.getElementById('notifBadge');
+  const notifs = registry?.notifications || [];
+  const pending = notifs.filter(n => n.status === 'pending').length;
+
+  if (pending > 0) {
+    badge.textContent = pending;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  if (!notifs.length) {
+    list.innerHTML = '<div class="empty">No notifications</div>';
+    return;
+  }
+
+  list.innerHTML = notifs.map(n => `
+    <div class="notif-item ${n.status === 'processed' ? 'processed' : n.type === 'REPORT' ? 'report' : ''}">
+      <div class="notif-from">📥 ${n.from} · ${n.type}</div>
+      <div class="notif-file">${n.file}</div>
+      <div class="notif-time">${n.received}</div>
+      ${n.status === 'pending' ? `
+        <div class="notif-actions">
+          <button class="notif-btn" onclick="processNotif(${n.id})">✓ PROCESS</button>
+          <button class="notif-btn" onclick="dismissNotif(${n.id})">✕ DISMISS</button>
+        </div>` :
+        '<div style="font-size:10px;color:var(--text-muted);margin-top:6px;font-family:Space Mono">✓ PROCESSED</div>'
+      }
+    </div>`).join('');
+}
+
+function renderUAT() {
+  const tbody = document.getElementById('uatTableBody');
+  const uat = registry?.uatTracker || [];
+
+  if (!uat.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No UAT cycles yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = uat.map(u => `
+    <tr>
+      <td style="font-weight:600">${u.project}</td>
+      <td><span class="version-tag">${u.version}</span></td>
+      <td style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted)">${u.date}</td>
+      <td>
+        <span class="result-tag ${u.result}">
+          ${u.result === 'passed' ? '✅' : u.result === '

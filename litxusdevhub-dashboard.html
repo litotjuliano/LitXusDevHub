@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LitXusDevHub</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3f;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --accent3: #43e97b;
+    --accent4: #f7971e;
+    --text: #e8e8f0;
+    --text-muted: #6b6b8a;
+    --running: #43e97b;
+    --stopped: #ff6584;
+    --building: #f7971e;
+    --pending: #6c63ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo h1 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .last-sync {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .refresh-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .refresh-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Main grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: #3a3a5f; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Notification badge */
+  .badge {
+    background: var(--accent2);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-family: 'Space Mono', monospace;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Systems Status */
+  .systems-card { grid-column: 1 / 3; }
+
+  .system-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--surface2);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .system-item:hover { border-color: var(--border); }
+
+  .system-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .status-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+
+  .status-dot.running {
+    background: var(--running);
+    box-shadow: 0 0 8px var(--running);
+    animation: glow 1.5s infinite;
+  }
+
+  .status-dot.stopped { background: var(--stopped); }
+  .status-dot.building {
+    background: var(--building);
+    animation: spin-glow 1s infinite;
+  }
+
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 6px var(--running); }
+    50% { box-shadow: 0 0 14px var(--running); }
+  }
+
+  @keyframes spin-glow {
+    0%, 100% { box-shadow: 0 0 6px var(--building); }
+    50% { box-shadow: 0 0 14px var(--building); }
+  }
+
+  .system-name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .system-port {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .system-status-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  .system-status-label.running { 
+    background: rgba(67,233,123,0.12); 
+    color: var(--running); 
+  }
+  .system-status-label.stopped { 
+    background: rgba(255,101,132,0.12); 
+    color: var(--stopped); 
+  }
+  .system-status-label.building { 
+    background: rgba(247,151,30,0.12); 
+    color: var(--building); 
+  }
+
+  .system-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .action-btn {
+    padding: 6px 12px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .action-btn.start:hover { background: rgba(67,233,123,0.15); border-color: var(--running); color: var(--running); }
+  .action-btn.stop:hover { background: rgba(255,101,132,0.15); border-color: var(--stopped); color: var(--stopped); }
+  .action-btn.build:hover { background: rgba(247,151,30,0.15); border-color: var(--building); color: var(--building); }
+  .action-btn.browse:hover { background: rgba(108,99,255,0.15); border-color: var(--accent); color: var(--accent); }
+  .action-btn.refresh:hover { background: rgba(108,99,255,0.15); border-color: var(--accent); color: var(--accent); }
+
+  /* Notifications */
+  .notif-card { grid-column: 3; grid-row: 1 / 3; }
+
+  .notif-item {
+    padding: 14px;
+    background: var(--surface2);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--accent);
+    transition: all 0.2s;
+  }
+
+  .notif-item.processed { border-left-color: var(--text-muted); opacity: 0.5; }
+  .notif-item.error { border-left-color: var(--accent2); }
+  .notif-item.success { border-left-color: var(--running); }
+
+  .notif-from {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .notif-item.error .notif-from { color: var(--accent2); }
+  .notif-item.success .notif-from { color: var(--running); }
+
+  .notif-file {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .notif-time {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .notif-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .notif-btn {
+    flex: 1;
+    padding: 5px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 700;
+  }
+
+  .notif-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(108,99,255,0.1); }
+
+  /* UAT Tracker */
+  .uat-card { grid-column: 1 / 3; }
+
+  .uat-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .uat-table th {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .uat-table td {
+    padding: 12px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(42,42,63,0.5);
+    vertical-align: middle;
+  }
+
+  .uat-table tr:last-child td { border-bottom: none; }
+  .uat-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .version-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    background: var(--surface2);
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+  }
+
+  .result-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .result-tag.passed { background: rgba(67,233,123,0.12); color: var(--running); }
+  .result-tag.failed { background: rgba(255,101,132,0.12); color: var(--stopped); }
+  .result-tag.pending { background: rgba(108,99,255,0.12); color: var(--accent); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .stat-icon.purple { background: rgba(108,99,255,0.15); }
+  .stat-icon.green { background: rgba(67,233,123,0.15); }
+  .stat-icon.red { background: rgba(255,101,132,0.15); }
+  .stat-icon.orange { background: rgba(247,151,30,0.15); }
+
+  .stat-num {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 3px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 13px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 100;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .toast.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .toast.success { border-color: var(--running); color: var(--running); }
+  .toast.warning { border-color: var(--building); color: var(--building); }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⬡</div>
+      <h1>LitXus<span>DevHub</span></h1>
+    </div>
+    <div class="header-right">
+      <span class="last-sync" id="lastSync">Last sync: just now</span>
+      <button class="refresh-btn" onclick="refreshDashboard()">↻ Refresh</button>
+    </div>
+  </header>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-icon purple">⬡</div>
+      <div>
+        <div class="stat-num" id="totalSystems">3</div>
+        <div class="stat-label">Total Systems</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">▶</div>
+      <div>
+        <div class="stat-num" id="runningSystems">0</div>
+        <div class="stat-label">Running</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red">🔔</div>
+      <div>
+        <div class="stat-num" id="pendingNotifs">2</div>
+        <div class="stat-label">Notifications</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">📋</div>
+      <div>
+        <div class="stat-num" id="activeUAT">2</div>
+        <div class="stat-label">Active UAT</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Systems Status -->
+    <div class="card systems-card">
+      <div class="card-header">
+        <span class="card-title">Systems Status</span>
+      </div>
+      <div id="systemsList"></div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="card notif-card">
+      <div class="card-header">
+        <span class="card-title">Notifications</span>
+        <span class="badge" id="notifBadge">2</span>
+      </div>
+      <div id="notifList"></div>
+    </div>
+
+    <!-- UAT Tracker -->
+    <div class="card uat-card">
+      <div class="card-header">
+        <span class="card-title">UAT Tracker</span>
+      </div>
+      <table class="uat-table">
+        <thead>
+          <tr>
+            <th>Project</th>
+            <th>Version</th>
+            <th>Date</th>
+            <th>Result</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="uatTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA LAYER (systems-registry.json) ───────────────────────────────────────
+// In production, this reads from C:\LitXus Systems\LitXusDevHub\systems-registry.json
+// For now, this mirrors the JSON structure:
+
+let registry = {
+  systems: [
+    {
+      name: "LitXusDevHub",
+      port: 5000,
+      status: "running",
+      description: "Main orchestrator",
+      dashboard: "/dashboards/litxusdevhub.md",
+      lastUpdated: "2026-06-01"
+    },
+    {
+      name: "LitXusCount",
+      port: 3001,
+      status: "stopped",
+      description: "ERP System",
+      dashboard: "/dashboards/litxuscount.md",
+      lastUpdated: "2026-06-01"
+    },
+    {
+      name: "LitXusTravel",
+      port: 3000,
+      status: "stopped",
+      description: "Travel SaaS",
+      dashboard: "/dashboards/litxustravel.md",
+      lastUpdated: "2026-06-01"
+    }
+  ],
+  notifications: [
+    {
+      id: 1,
+      from: "LitXusTravel",
+      file: "uat-list-v1.md",
+      type: "UAT",
+      status: "pending",
+      received: "2026-06-01 3:55 PM"
+    },
+    {
+      id: 2,
+      from: "LitXusCount",
+      file: "uat-list-v1.md",
+      type: "UAT",
+      status: "pending",
+      received: "2026-06-01 4:10 PM"
+    },
+    {
+      id: 3,
+      from: "LitXusDevHub",
+      file: "test-report-litxustravel-v1.md",
+      type: "REPORT",
+      status: "processed",
+      received: "2026-06-01 4:00 PM"
+    }
+  ],
+  uatTracker: [
+    {
+      project: "LitXusTravel",
+      version: "v1",
+      date: "2026-06-01",
+      result: "pending",
+      notes: "3 features awaiting test"
+    },
+    {
+      project: "LitXusCount",
+      version: "v1",
+      date: "2026-06-01",
+      result: "pending",
+      notes: "Submitted for review"
+    }
+  ]
+};
+
+// ─── RENDER FUNCTIONS ─────────────────────────────────────────────────────────
+
+function renderSystems() {
+  const list = document.getElementById('systemsList');
+  let running = 0;
+  list.innerHTML = registry.systems.map(sys => {
+    if (sys.status === 'running') running++;
+    return `
+    <div class="system-item" id="sys-${sys.name}">
+      <div class="system-left">
+        <div class="status-dot ${sys.status}"></div>
+        <div>
+          <div class="system-name">${sys.name}</div>
+          <div class="system-port">:${sys.port} · ${sys.description}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="system-status-label ${sys.status}">${sys.status.toUpperCase()}</span>
+        <div class="system-actions">
+          ${sys.status !== 'running' ? `<button class="action-btn start" onclick="controlSystem('${sys.name}','start')">▶ START</button>` : ''}
+          ${sys.status === 'running' ? `<button class="action-btn stop" onclick="controlSystem('${sys.name}','stop')">■ STOP</button>` : ''}
+          <button class="action-btn build" onclick="controlSystem('${sys.name}','build')">⚙ BUILD</button>
+          <button class="action-btn refresh" onclick="controlSystem('${sys.name}','refresh')">↻ REFRESH</button>
+          ${sys.status === 'running' ? `<button class="action-btn browse" onclick="browseSystem('${sys.name}','${sys.port}')">⬡ BROWSE</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('runningSystems').textContent = running;
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notifList');
+  const pending = registry.notifications.filter(n => n.status === 'pending');
+  document.getElementById('pendingNotifs').textContent = pending.length;
+  document.getElementById('notifBadge').textContent = pending.length;
+
+  if (registry.notifications.length === 0) {
+    list.innerHTML = '<div class="empty">No notifications</div>';
+    return;
+  }
+
+  list.innerHTML = registry.notifications.map(notif => `
+    <div class="notif-item ${notif.status === 'processed' ? 'processed' : notif.type === 'REPORT' ? 'success' : ''}" id="notif-${notif.id}">
+      <div class="notif-from">📥 ${notif.from} · ${notif.type}</div>
+      <div class="notif-file">${notif.file}</div>
+      <div class="notif-time">${notif.received}</div>
+      ${notif.status === 'pending' ? `
+      <div class="notif-actions">
+        <button class="notif-btn" onclick="processNotif(${notif.id})">✓ PROCESS</button>
+        <button class="notif-btn" onclick="dismissNotif(${notif.id})">✕ DISMISS</button>
+      </div>` : '<div style="font-size:10px;color:var(--text-muted);margin-top:6px;font-family:Space Mono">✓ PROCESSED</div>'}
+    </div>
+  `).join('');
+}
+
+function renderUAT() {
+  const tbody = document.getElementById('uatTableBody');
+  document.getElementById('activeUAT').textContent = registry.uatTracker.filter(u => u.result !== 'passed').length;
+
+  if (registry.uatTracker.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No UAT cycles yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = registry.uatTracker.map(uat => `
+    <tr>
+      <td style="font-weight:600">${uat.project}</td>
+      <td><span class="version-tag">${uat.version}</span></td>
+      <td style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted)">${uat.date}</td>
+      <td>
+        <span class="result-tag ${uat.result}">
+          ${uat.result === 'passed' ? '✅' : uat.result === 'failed' ? '❌' : '⏳'} ${uat.result.toUpperCase()}
+        </span>
+      </td>
+      <td style="font-size:12px;color:var(--text-muted)">${uat.notes}</td>
+    </tr>
+  `).join('');
+}
+
+// ─── ACTIONS ──────────────────────────────────────────────────────────────────
+
+function controlSystem(name, action) {
+  const sys = registry.systems.find(s => s.name === name);
+  if (!sys) return;
+
+  if (action === 'start') {
+    sys.status = 'running';
+    showToast(`▶ ${name} started on :${sys.port}`, 'success');
+  } else if (action === 'stop') {
+    sys.status = 'stopped';
+    showToast(`■ ${name} stopped`, 'warning');
+  } else if (action === 'build') {
+    sys.status = 'building';
+    showToast(`⚙ Building ${name}...`, 'warning');
+    setTimeout(() => {
+      sys.status = 'running';
+      renderSystems();
+      showToast(`✅ ${name} build complete!`, 'success');
+    }, 3000);
+  } else if (action === 'refresh') {
+    showToast(`↻ ${name} refreshed`, 'success');
+  }
+  renderSystems();
+  updateRegistry();
+}
+
+function browseSystem(name, port) {
+  showToast(`⬡ Opening ${name} on localhost:${port}`, 'success');
+  // In production: window.open(`http://localhost:${port}`)
+}
+
+function processNotif(id) {
+  const notif = registry.notifications.find(n => n.id === id);
+  if (notif) {
+    notif.status = 'processed';
+    showToast(`✓ ${notif.file} processed`, 'success');
+    renderNotifications();
+    updateRegistry();
+  }
+}
+
+function dismissNotif(id) {
+  registry.notifications = registry.notifications.filter(n => n.id !== id);
+  showToast('Notification dismissed', 'warning');
+  renderNotifications();
+}
+
+function refreshDashboard() {
+  const btn = document.querySelector('.refresh-btn');
+  btn.textContent = '↻ Syncing...';
+  setTimeout(() => {
+    btn.textContent = '↻ Refresh';
+    document.getElementById('lastSync').textContent = 'Last sync: just now';
+    renderAll();
+    showToast('✅ Dashboard synced with registry', 'success');
+  }, 1200);
+}
+
+function updateRegistry() {
+  // In production: writes back to systems-registry.json
+  // registry JSON is kept in sync
+  document.getElementById('lastSync').textContent = 'Last sync: just now';
+}
+
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  setTimeout(() => { toast.className = 'toast'; }, 3000);
+}
+
+function renderAll() {
+  renderSystems();
+  renderNotifications();
+  renderUAT();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderAll();
+
+// Auto-refresh every 30 seconds (simulates polling systems-registry.json)
+setInterval(() => {
+  document.getElementById('lastSync').textContent = 'Last sync: just now';
+}, 30000);
+</script>
+</body>
+</html>

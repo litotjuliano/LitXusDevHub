@@ -1,0 +1,45 @@
+{
+  "systems": [
+    {
+      "name": "LitXusDevHub",
+      "port": 5000,
+      "status": "running",
+      "description": "Main orchestrator",
+      "dashboard": "/dashboards/litxusdevhub.md",
+      "lastUpdated": "2026-06-01"
+    },
+    {
+      "name": "LitXusCount",
+      "port": 3001,
+      "status": "stopped",
+      "description": "ERP System",
+      "startCommand": "npm start",
+      "buildCommand": "npm run build",
+      "workingDirectory": "C:\\LitXus Systems\\LitXusCount",
+      "dashboard": "/dashboards/litxuscount.md",
+      "lastUpdated": "2026-06-01"
+    },
+    {
+      "name": "LitXusTravel",
+      "port": 5085,
+      "group": "LitXusTravel",
+      "status": "running",
+      "description": "Travel SaaS",
+      "startCommand": "dotnet run --project src/NexusTravel.API --no-launch-profile --urls http://localhost:5085",
+      "startEnv": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "buildCommand": "dotnet build src/NexusTravel.API",
+      "workingDirectory": "C:\\LitXus Systems\\LitXusTravel",
+      "frontendStartCommand": "npm run dev",
+      "frontendWorkingDirectory": "C:\\LitXus Systems\\LitXusTravel\\web\\admin-portal",
+      "frontendLabel": "OPEN ADMIN PORTAL",
+      "urls": {
+        "backend": "http://localhost:5085",
+        "swagger": "http://localhost:5085/swagger",
+        "frontend": "http://localhost:3000",
+        "publicWebsite": "http://localhost:3001"
+      },
+      "dashboard": "/dashboards/litxustravel.md",
+      "lastUpdated": "2026-06-02",
+      "notes": "Use startEnv to inject ASPNETCOR

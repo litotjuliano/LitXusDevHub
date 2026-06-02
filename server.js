@@ -309,6 +309,35 @@ var server = http.createServer(function(req, res) {
     return send(res, 200, { success: true });
   }
 
+  if (url === '/api/git/status' && method === 'GET') {
+    exec('git status --short', { cwd: BASE, shell: true }, function(err, stdout) {
+      send(res, 200, { status: stdout || 'clean' });
+    });
+    return;
+  }
+
+  if (url === '/api/git/commit' && method === 'POST') {
+    parseBody(req).then(function(body) {
+      var msg = (body.message || 'chore: update').replace(/"/g, "'");
+      var gitDir = path.join(BASE, '.git');
+      var locks = ['index.lock', 'HEAD.lock', 'config.lock'].map(function(f) { return path.join(gitDir, f); });
+      locks.forEach(function(f) { try { fs.unlinkSync(f); } catch(e) {} });
+      exec('git add . && git commit -m "' + msg + '"', { cwd: BASE, shell: true }, function(err, stdout, stderr) {
+        if (err && err.code !== 0) return send(res, 200, { success: false, message: stderr || err.message });
+        send(res, 200, { success: true, message: stdout.trim() });
+      });
+    });
+    return;
+  }
+
+  if (url === '/api/git/push' && method === 'POST') {
+    exec('git push origin master', { cwd: BASE, shell: true }, function(err, stdout, stderr) {
+      if (err) return send(res, 200, { success: false, message: stderr || err.message });
+      send(res, 200, { success: true, message: 'Pushed to origin/master' });
+    });
+    return;
+  }
+
   if (url === '/api/registry' && method === 'POST') {
     parseBody(req).then(function(body) {
       writeRegistry(body);
@@ -340,4 +369,24 @@ server.on('listening', function() {
   console.log('');
   console.log('  LitXusDevHub Server');
   console.log('  http://localhost:' + PORT);
-  c
+  console.log('  Press Ctrl+C to stop');
+  console.log('');
+  try {
+    fs.watch(INCOMING_PATH, function(event, filename) {
+      if (filename && filename.endsWith('.md')) {
+        console.log('[INCOMING] ' + filename);
+        scanIncoming();
+      }
+    });
+  } catch(e) { console.log('  Could not watch incoming: ' + e.message); }
+  scanIncoming();
+});
+
+server.on('error', function(e) {
+  if (e.code === 'EADDRINUSE') {
+    console.error('  ERROR: Port ' + PORT + ' still in use. Try again.');
+  } else {
+    console.error('  ERROR: ' + e.message);
+  }
+  process.exit(1);
+});

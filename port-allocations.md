@@ -17,4 +17,7 @@
 - 3000–3010: Frontend apps
 - 8000–8010: Testing & monitoring
 
-## Port Conflict Re
+## Port Conflict Resolution
+- Always check systems-registry.json before starting any service
+- If port is in use, kill with: `FOR /F "tokens=5" %P IN ('netstat -ano ^| findstr :<PORT>') DO taskkill /PID %P /F`
+- Update this file AND systems-registry.json simultaneously

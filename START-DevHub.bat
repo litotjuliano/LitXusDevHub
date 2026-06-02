@@ -28,4 +28,7 @@ FOR /F "tokens=5" %%P IN ('netstat -ano ^| findstr :5000 2^>nul') DO (
 
 :: Start server, wait for it to be ready, then open browser
 start /B node server.js
-ti
+timeout /t 2 /nobreak >nul
+start "" http://localhost:5000
+
+pause

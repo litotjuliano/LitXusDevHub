@@ -42,4 +42,58 @@
       },
       "dashboard": "/dashboards/litxustravel.md",
       "lastUpdated": "2026-06-02",
-      "notes": "Use startEnv to inject ASPNETCOR
+      "notes": "Use startEnv to inject ASPNETCORE_ENVIRONMENT. Serilog suppresses startup logs — app is live even if terminal appears frozen. See memory: nexustravel-api-startup."
+    },
+    {
+      "name": "LitXusTravel-PublicSite",
+      "port": 3001,
+      "group": "LitXusTravel",
+      "status": "running",
+      "description": "Public website (Next.js)",
+      "startCommand": "npm run dev",
+      "startEnv": {
+        "TURBOPACK": "0"
+      },
+      "workingDirectory": "C:\\LitXus Systems\\LitXusTravel\\web\\public-website",
+      "urls": {
+        "frontend": "http://localhost:3001"
+      },
+      "lastUpdated": "2026-06-02"
+    },
+    {
+      "name": "LitXusTravel-TenantDash",
+      "port": 3002,
+      "group": "LitXusTravel",
+      "status": "stopped",
+      "description": "Tenant dashboard (Next.js)",
+      "startCommand": "npm run dev",
+      "startEnv": {
+        "TURBOPACK": "0"
+      },
+      "workingDirectory": "C:\\LitXus Systems\\LitXusTravel\\web\\tenant-dashboard",
+      "urls": {
+        "frontend": "http://localhost:3002"
+      },
+      "lastUpdated": "2026-06-02"
+    }
+  ],
+  "notifications": [
+    {
+      "id": 1780324992794,
+      "from": "Unknown",
+      "file": "uat-list-v1.md",
+      "type": "UAT",
+      "status": "pending",
+      "received": "01/06/2026, 10:43:12 pm"
+    }
+  ],
+  "uatTracker": [
+    {
+      "project": "LitXusTravel",
+      "version": "v1",
+      "date": "2026-06-01",
+      "result": "pending",
+      "notes": "3 features awaiting test"
+    }
+  ]
+}

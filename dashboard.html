@@ -327,9 +327,25 @@
     </div>
     <div class="header-right">
       <span class="last-sync" id="lastSync">Connecting...</span>
-      <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">↻ Refresh</button>
+      <button class="refresh-btn" id="refreshBtn" onclick="loadAll(true)">↻ Refresh</button>
+      <button class="refresh-btn" onclick="openGitPanel()" style="border-color:#6c63ff;color:#6c63ff">⬡ GIT</button>
     </div>
   </header>
+
+  <!-- Git Panel -->
+  <div id="gitPanel" style="display:none;background:var(--surface);border:1px solid var(--accent);border-radius:14px;padding:20px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-family:'Space Mono',monospace">⬡ Git — LitXusDevHub</span>
+      <button onclick="closeGitPanel()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <input id="commitMsg" type="text" placeholder="Commit message..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Space Mono',monospace;font-size:12px;outline:none" />
+      <button class="action-btn start" onclick="gitCommit()" style="padding:8px 16px">✓ COMMIT</button>
+      <button class="action-btn browse" onclick="gitPush()" style="padding:8px 16px">↑ PUSH</button>
+      <button class="action-btn" onclick="gitCommitAndPush()" style="padding:8px 16px;border-color:var(--accent);color:var(--accent)">✓↑ COMMIT & PUSH</button>
+    </div>
+    <pre id="gitOutput" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted);min-height:40px;white-space:pre-wrap;margin:0">Ready.</pre>
+  </div>
 
   <div class="stats-bar">
     <div class="stat-card">
@@ -393,28 +409,40 @@ async function apiFetch(endpoint, method = 'GET', body = null) {
 }
 
 // ─── LOAD ALL ─────────────────────────────────────────────────────────────────
-async function loadAll() {
+let _lastRegistryHash = null;
+let _manualRefresh = false;
+
+async function loadAll(manual = false) {
+  if (manual) _manualRefresh = true;
   const btn = document.getElementById('refreshBtn');
-  btn.textContent = '↻ Syncing...';
-  btn.classList.add('loading');
+  if (manual) { btn.textContent = '↻ Syncing...'; btn.classList.add('loading'); }
 
   try {
-    registry = await apiFetch('/api/registry');
-    renderSystems();
-    renderNotifications();
-    renderUAT();
-    updateStats();
+    const fresh = await apiFetch('/api/registry');
+    const hash = JSON.stringify(fresh);
+
     document.getElementById('lastSync').textContent =
       'Last sync: ' + new Date().toLocaleTimeString('en-MY');
-    showToast('✅ Synced with registry', 'ok');
+
+    if (hash !== _lastRegistryHash) {
+      _lastRegistryHash = hash;
+      registry = fresh;
+      renderSystems();
+      renderNotifications();
+      renderUAT();
+      updateStats();
+    }
+
+    if (manual) showToast('✅ Synced with registry', 'ok');
   } catch (e) {
     document.getElementById('systemsList').innerHTML =
       '<div class="error-state">❌ Cannot connect to server.<br>Run: node server.js in LitXusDevHub folder</div>';
     document.getElementById('lastSync').textContent = 'Server offline';
-    showToast('❌ Server not reachable', 'fail');
+    if (manual) showToast('❌ Server not reachable', 'fail');
   } finally {
     btn.textContent = '↻ Refresh';
     btn.classList.remove('loading');
+    _manualRefresh = false;
   }
 }
 
@@ -540,4 +568,100 @@ function renderUAT() {
       <td style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted)">${u.date}</td>
       <td>
         <span class="result-tag ${u.result}">
-          ${u.result === 'passed' ? '✅' : u.result === '
+          ${u.result === 'passed' ? '✅' : u.result === 'failed' ? '❌' : '⏳'} ${u.result.toUpperCase()}
+        </span>
+      </td>
+      <td style="font-size:12px;color:var(--text-muted)">${u.notes}</td>
+    </tr>`).join('');
+}
+
+function updateStats() {
+  const systems = registry?.systems || [];
+  const notifs  = registry?.notifications || [];
+  const uat     = registry?.uatTracker || [];
+
+  document.getElementById('totalSystems').textContent   = systems.length;
+  document.getElementById('runningSystems').textContent  = systems.filter(s => s.status === 'running').length;
+  document.getElementById('pendingNotifs').textContent   = notifs.filter(n => n.status === 'pending').length;
+  document.getElementById('activeUAT').textContent       = uat.filter(u => u.result !== 'passed').length;
+}
+
+// ─── ACTIONS ──────────────────────────────────────────────────────────────────
+async function doAction(name, action) {
+  showToast(`⏳ ${action.toUpperCase()} ${name}...`, 'warn');
+  try {
+    const result = await apiFetch(`/api/systems/${encodeURIComponent(name)}/${action}`, 'POST');
+    showToast(result.success ? `✅ ${result.message}` : `❌ ${result.message}`,
+              result.success ? 'ok' : 'fail');
+    setTimeout(loadAll, 500);
+  } catch (e) {
+    showToast(`❌ Failed: ${e.message}`, 'fail');
+  }
+}
+
+function browse(url) {
+  window.open(url, '_blank');
+}
+
+async function processNotif(id) {
+  await apiFetch(`/api/notifications/${id}/process`, 'POST');
+  showToast('✓ Notification processed', 'ok');
+  loadAll();
+}
+
+async function dismissNotif(id) {
+  await apiFetch(`/api/notifications/${id}/dismiss`, 'POST');
+  showToast('Dismissed', 'warn');
+  loadAll();
+}
+
+function showToast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+// ─── GIT ──────────────────────────────────────────────────────────────────────
+function openGitPanel() {
+  document.getElementById('gitPanel').style.display = 'block';
+  apiFetch('/api/git/status').then(r => {
+    document.getElementById('gitOutput').textContent = r.status || 'Nothing to commit.';
+  });
+}
+function closeGitPanel() { document.getElementById('gitPanel').style.display = 'none'; }
+
+function gitLog(msg) { document.getElementById('gitOutput').textContent = msg; }
+
+async function gitCommit() {
+  const msg = document.getElementById('commitMsg').value.trim();
+  if (!msg) { gitLog('⚠ Enter a commit message.'); return; }
+  gitLog('Committing...');
+  const r = await apiFetch('/api/git/commit', 'POST', { message: msg });
+  gitLog(r.success ? '✅ ' + r.message : '❌ ' + r.message);
+}
+
+async function gitPush() {
+  gitLog('Pushing to origin/master...');
+  const r = await apiFetch('/api/git/push', 'POST');
+  gitLog(r.success ? '✅ ' + r.message : '❌ ' + r.message);
+}
+
+async function gitCommitAndPush() {
+  const msg = document.getElementById('commitMsg').value.trim();
+  if (!msg) { gitLog('⚠ Enter a commit message.'); return; }
+  gitLog('Committing...');
+  const c = await apiFetch('/api/git/commit', 'POST', { message: msg });
+  if (!c.success) { gitLog('❌ Commit failed: ' + c.message); return; }
+  gitLog('✅ Committed. Pushing...');
+  const p = await apiFetch('/api/git/push', 'POST');
+  gitLog(p.success ? '✅ Pushed to origin/master.' : '❌ Push failed: ' + p.message);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+loadAll(true);
+setInterval(() => loadAll(false), 15000); // silent poll every 15s — only re-renders on change
+</script>
+</body>
+</html>

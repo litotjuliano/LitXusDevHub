@@ -9,7 +9,6 @@ process.on('unhandledRejection', function(e) { console.error('[UNHANDLED] ' + e)
 const PORT = 5000;
 const BASE = 'C:\\LitXus Systems\\LitXusDevHub';
 const REGISTRY_PATH = path.join(BASE, 'systems-registry.json');
-const DEFAULTS_PATH = path.join(BASE, 'systems-defaults.json');
 const INCOMING_PATH = path.join(BASE, 'incoming');
 const DASHBOARD_PATH = path.join(BASE, 'dashboard.html');
 
@@ -18,21 +17,11 @@ const processes = {};
 // On startup, reset all managed systems to stopped (processes were killed by START-DevHub.bat)
 function resetRegistryOnStartup() {
   var reg = readRegistry();
-
-  // Seed from defaults if systems array is empty (e.g. after git reset/checkout)
-  if (reg.systems.length === 0) {
-    var defaults = readDefaults();
-    var today = new Date().toISOString().split('T')[0];
-    reg.systems = defaults.systems.map(function(sys) {
-      return Object.assign({}, sys, { status: 'stopped', lastUpdated: today });
-    });
-    console.log('[STARTUP] Systems seeded from systems-defaults.json (' + reg.systems.length + ' systems)');
-  } else {
-    reg.systems.forEach(function(sys) {
-      if (sys.name !== 'LitXusDevHub') sys.status = 'stopped';
-    });
-  }
-
+  reg.systems.forEach(function(sys) {
+    if (sys.name !== 'LitXusDevHub') {
+      sys.status = 'stopped';
+    }
+  });
   writeRegistry(reg);
   console.log('[STARTUP] All system statuses reset to stopped.');
 }
@@ -40,11 +29,6 @@ function resetRegistryOnStartup() {
 function readRegistry() {
   try { return JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8')); }
   catch { return { systems: [], notifications: [], uatTracker: [] }; }
-}
-
-function readDefaults() {
-  try { return JSON.parse(fs.readFileSync(DEFAULTS_PATH, 'utf8')); }
-  catch { return { systems: [] }; }
 }
 
 function writeRegistry(data) {

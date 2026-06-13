@@ -198,6 +198,7 @@
   .status-dot.running  { background: var(--running); box-shadow: 0 0 8px var(--running); animation: glow 1.5s infinite; }
   .status-dot.stopped  { background: var(--stopped); }
   .status-dot.building { background: var(--building); animation: glow-b 1s infinite; }
+  .status-dot.static   { background: #555; }
 
   @keyframes glow   { 0%,100%{box-shadow:0 0 6px var(--running)}  50%{box-shadow:0 0 14px var(--running)} }
   @keyframes glow-b { 0%,100%{box-shadow:0 0 6px var(--building)} 50%{box-shadow:0 0 14px var(--building)} }
@@ -462,18 +463,18 @@ function systemItemHTML(sys) {
         <div class="status-dot ${sys.status}"></div>
         <div>
           <div class="system-name">${sys.name}</div>
-          <div class="system-port">:${sys.port} · ${sys.description}</div>
+          <div class="system-port">${sys.isReadOnly ? sys.description : ':' + sys.port + ' · ' + sys.description}</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
-        <span class="system-status-label ${sys.status}">${sys.status.toUpperCase()}</span>
+        ${!sys.isReadOnly ? `<span class="system-status-label ${sys.status}">${sys.status.toUpperCase()}</span>` : ''}
         <div class="system-actions">
-          ${sys.status !== 'running' && sys.name !== 'LitXusDevHub'
+          ${!sys.isReadOnly && sys.status !== 'running' && sys.name !== 'LitXusDevHub'
             ? `<button class="action-btn start" onclick="doAction('${sys.name}','start')">▶ START</button>` : ''}
-          ${sys.status === 'running' && sys.name !== 'LitXusDevHub'
+          ${!sys.isReadOnly && sys.status === 'running' && sys.name !== 'LitXusDevHub'
             ? `<button class="action-btn stop"  onclick="doAction('${sys.name}','stop')">■ STOP</button>` : ''}
-          <button class="action-btn build"   onclick="doAction('${sys.name}','build')">⚙ BUILD</button>
-          <button class="action-btn refresh" onclick="doAction('${sys.name}','refresh')">↻</button>
+          ${!sys.isReadOnly ? `<button class="action-btn build"   onclick="doAction('${sys.name}','build')">⚙ BUILD</button>` : ''}
+          ${!sys.isReadOnly ? `<button class="action-btn refresh" onclick="doAction('${sys.name}','refresh')">↻</button>` : ''}
           ${sys.urls ? `
             ${sys.urls.swagger ? `<a class="action-btn browse" href="${sys.urls.swagger}" target="_blank" rel="noopener">⬡ SWAGGER</a>` : sys.urls.backend ? `<a class="action-btn browse" href="${sys.urls.backend}" target="_blank" rel="noopener">⬡ API</a>` : ''}
             ${sys.urls.frontend ? `<a class="action-btn browse" href="${sys.urls.frontend}" target="_blank" rel="noopener">🌐 ${sys.frontendLabel || 'OPEN FRONTEND'}</a>` : ''}
@@ -507,9 +508,10 @@ function renderSystems() {
   let html = standalone.map(sys => systemItemHTML(sys)).join('');
 
   Object.entries(grouped).forEach(([groupName, systems]) => {
+    const allStatic  = systems.every(s => s.isReadOnly);
     const allRunning = systems.every(s => s.status === 'running');
     const anyRunning = systems.some(s => s.status === 'running');
-    const dot = allRunning ? 'running' : anyRunning ? 'building' : 'stopped';
+    const dot = allStatic ? 'static' : allRunning ? 'running' : anyRunning ? 'building' : 'stopped';
     html += `
       <div class="system-group">
         <div class="system-group-header">

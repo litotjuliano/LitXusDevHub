@@ -36,7 +36,7 @@ LitXusDevHub is the orchestration dashboard for all LitXus systems. It provides 
 |---|---|---|---|---|
 | LitXusTravel | LitXusTravel | 5085 | .NET 8 API backend + Admin Portal | Swagger · API · ADMIN PORTAL |
 | LitXusTravel-PublicSite | LitXusTravel | 3001 | Public website (Next.js) | OPEN |
-| LitXusTravel-TenantDash | LitXusTravel | 3002 | Tenant dashboard (Next.js) | OPEN |
+| LitXusTravel-AgentDash | LitXusTravel | 3002 | Agent dashboard — Staff & Independent agents (Next.js) | OPEN |
 | LitXusCount | LitXusCount | 5254 | ERP system (.NET 8 API) | API |
 
 > `LitXusTravel-AdminPortal` was removed — LitXusTravel already covers it via `frontendStartCommand` + ADMIN PORTAL button.

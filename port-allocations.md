@@ -8,7 +8,7 @@
 | LitXusTravel API | 5085 | Managed | .NET 8, Swagger at /swagger |
 | NexusTravel-AdminPortal | 3000 | Managed | web/admin-portal (Next.js) |
 | NexusTravel-PublicSite | 3001 | Managed | web/public-website (Next.js) |
-| NexusTravel-TenantDash | 3002 | Managed | web/tenant-dashboard (Next.js) |
+| LitXusTravel-AgentDash | 3002 | Managed | web/tenant-dashboard (Next.js) — Agent dashboard |
 | LitXusCount | 3001 | Managed | ERP System |
 
 ## Reserved Ranges

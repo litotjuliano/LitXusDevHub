@@ -90,6 +90,25 @@ If login shows "Server unavailable" even when DevHub shows RUNNING — check tha
 
 ---
 
+## Tenant Dev URLs (lvh.me)
+
+`*.lvh.me` is a public wildcard DNS that always resolves to `127.0.0.1` — no hosts file changes needed.
+
+| Tenant | Public Site URL | Notes |
+|--------|----------------|-------|
+| Travel Pro | http://travelpro.lvh.me:3001 | PublicSite must be RUNNING |
+| Wanderlust Tours | http://wanderlust.lvh.me:3001 | PublicSite must be RUNNING |
+| Adventure Seekers | http://adventure.lvh.me:3002 | TenantDash must be RUNNING |
+
+**Admin portal:** stays on `http://localhost:3000` — no subdomain needed.
+
+**Requirements before testing:**
+1. DB reset: `dotnet ef database drop --force` → `dotnet ef database update`
+2. START all three LitXusTravel systems from DevHub
+3. The seeder auto-assigns subdomains on first run
+
+---
+
 ## Planned for v2
 - Health-check polling (auto-detect running vs stopped without manual status)
 - Log viewer panel per system

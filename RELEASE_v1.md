@@ -52,6 +52,17 @@ LitXusDevHub is the orchestration dashboard for all LitXus systems. It provides 
 - `systems-registry.json` is not version-controlled (intentional — it is runtime state, not source)
 - LitXusCount is registered in the dashboard but excluded from LitXusTravel debugging sessions
 
+## Port Alignment (Critical)
+DevHub starts LitXusTravel with `dotnet run --launch-profile http`. The `http` profile in `launchSettings.json` **must** point to port **5085** to match the frontend and DevHub registry.
+
+| File | Setting | Correct Value |
+|---|---|---|
+| `launchSettings.json` → `http` profile | `applicationUrl` | `http://localhost:5085` |
+| `systems-registry.json` → LitXusTravel | `port` | `5085` |
+| `admin-portal/src/lib/api.ts` | `NEXT_PUBLIC_API_URL` default | `http://localhost:5085/api/v1` |
+
+If login shows "Server unavailable" even when DevHub shows RUNNING — check that all three point to the same port.
+
 ---
 
 ## Planned for v2

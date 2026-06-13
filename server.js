@@ -9,14 +9,42 @@ process.on('unhandledRejection', function(e) { console.error('[UNHANDLED] ' + e)
 const PORT = 5000;
 const BASE = 'C:\\LitXus Systems\\LitXusDevHub';
 const REGISTRY_PATH = path.join(BASE, 'systems-registry.json');
+const DEFAULTS_PATH = path.join(BASE, 'systems-defaults.json');
 const INCOMING_PATH = path.join(BASE, 'incoming');
 const DASHBOARD_PATH = path.join(BASE, 'dashboard.html');
 
 const processes = {};
 
+// On startup, reset all managed systems to stopped (processes were killed by START-DevHub.bat)
+function resetRegistryOnStartup() {
+  var reg = readRegistry();
+
+  // Seed from defaults if systems array is empty (e.g. after git reset/checkout)
+  if (reg.systems.length === 0) {
+    var defaults = readDefaults();
+    var today = new Date().toISOString().split('T')[0];
+    reg.systems = defaults.systems.map(function(sys) {
+      return Object.assign({}, sys, { status: 'stopped', lastUpdated: today });
+    });
+    console.log('[STARTUP] Systems seeded from systems-defaults.json (' + reg.systems.length + ' systems)');
+  } else {
+    reg.systems.forEach(function(sys) {
+      if (sys.name !== 'LitXusDevHub') sys.status = 'stopped';
+    });
+  }
+
+  writeRegistry(reg);
+  console.log('[STARTUP] All system statuses reset to stopped.');
+}
+
 function readRegistry() {
   try { return JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8')); }
   catch { return { systems: [], notifications: [], uatTracker: [] }; }
+}
+
+function readDefaults() {
+  try { return JSON.parse(fs.readFileSync(DEFAULTS_PATH, 'utf8')); }
+  catch { return { systems: [] }; }
 }
 
 function writeRegistry(data) {
@@ -309,20 +337,34 @@ var server = http.createServer(function(req, res) {
     return send(res, 200, { success: true });
   }
 
+  function getRepo(name) {
+    var reg = readRegistry();
+    var repos = reg.gitRepos || [];
+    return repos.find(function(r) { return r.name === name; }) || { name: 'LitXusDevHub', path: BASE, remote: 'https://github.com/litotjuliano/LitXusDevHub.git' };
+  }
+
+  if (url === '/api/git/repos' && method === 'GET') {
+    var reg = readRegistry();
+    return send(res, 200, { repos: reg.gitRepos || [] });
+  }
+
   if (url === '/api/git/status' && method === 'GET') {
-    exec('git status --short', { cwd: BASE, shell: true }, function(err, stdout) {
-      send(res, 200, { status: stdout || 'clean' });
+    var qrepo = (req.url.split('?repo=')[1] || '').split('&')[0];
+    var srepo = getRepo(decodeURIComponent(qrepo) || 'LitXusDevHub');
+    exec('git status --short', { cwd: srepo.path, shell: true }, function(err, stdout) {
+      send(res, 200, { status: stdout || 'Nothing to commit.' });
     });
     return;
   }
 
   if (url === '/api/git/commit' && method === 'POST') {
     parseBody(req).then(function(body) {
+      var repo = getRepo(body.repo || 'LitXusDevHub');
       var msg = (body.message || 'chore: update').replace(/"/g, "'");
-      var gitDir = path.join(BASE, '.git');
+      var gitDir = path.join(repo.path, '.git');
       var locks = ['index.lock', 'HEAD.lock', 'config.lock'].map(function(f) { return path.join(gitDir, f); });
       locks.forEach(function(f) { try { fs.unlinkSync(f); } catch(e) {} });
-      exec('git add . && git commit -m "' + msg + '"', { cwd: BASE, shell: true }, function(err, stdout, stderr) {
+      exec('git add . && git commit -m "' + msg + '"', { cwd: repo.path, shell: true }, function(err, stdout, stderr) {
         if (err && err.code !== 0) return send(res, 200, { success: false, message: stderr || err.message });
         send(res, 200, { success: true, message: stdout.trim() });
       });
@@ -331,14 +373,16 @@ var server = http.createServer(function(req, res) {
   }
 
   if (url === '/api/git/push' && method === 'POST') {
-    var remoteUrl = 'https://github.com/litotjuliano/LitXusDevHub.git';
-    exec('git remote get-url origin', { cwd: BASE, shell: true }, function(err) {
-      var setRemote = err
-        ? 'git remote add origin ' + remoteUrl + ' && '
-        : 'git remote set-url origin ' + remoteUrl + ' && ';
-      exec(setRemote + 'git push origin master', { cwd: BASE, shell: true }, function(err2, stdout, stderr) {
-        if (err2) return send(res, 200, { success: false, message: stderr || err2.message });
-        send(res, 200, { success: true, message: 'Pushed to origin/master' });
+    parseBody(req).then(function(body) {
+      var repo = getRepo(body.repo || 'LitXusDevHub');
+      exec('git remote get-url origin', { cwd: repo.path, shell: true }, function(err) {
+        var setRemote = err
+          ? 'git remote add origin ' + repo.remote + ' && '
+          : 'git remote set-url origin ' + repo.remote + ' && ';
+        exec(setRemote + 'git push origin master', { cwd: repo.path, shell: true }, function(err2, stdout, stderr) {
+          if (err2) return send(res, 200, { success: false, message: stderr || err2.message });
+          send(res, 200, { success: true, message: 'Pushed ' + repo.name + ' to origin/master' });
+        });
       });
     });
     return;
@@ -348,6 +392,98 @@ var server = http.createServer(function(req, res) {
     parseBody(req).then(function(body) {
       writeRegistry(body);
       send(res, 200, { success: true });
+    });
+    return;
+  }
+
+  // ── UAT: Read incoming file ──────────────────────────────────────────────────
+  if (url.startsWith('/api/uat/read') && method === 'GET') {
+    var uatFile = decodeURIComponent((url.split('?file=')[1] || '').split('&')[0]);
+    if (!uatFile) return send(res, 400, { error: 'No filename' });
+    var uatCandidates = [
+      path.join(BASE, 'incoming', uatFile),
+      path.join(BASE, 'outgoing', uatFile)
+    ];
+    var uatPath = null;
+    uatCandidates.forEach(function(c) { if (!uatPath && fs.existsSync(c)) uatPath = c; });
+    if (!uatPath) return send(res, 404, { error: 'File not found: ' + uatFile });
+    try {
+      return send(res, 200, { content: fs.readFileSync(uatPath, 'utf8') });
+    } catch(e) { return send(res, 500, { error: e.message }); }
+  }
+
+  // ── UAT: Save test report ────────────────────────────────────────────────────
+  if (url === '/api/uat/report' && method === 'POST') {
+    parseBody(req).then(function(body) {
+      var outDir = path.join(BASE, 'outgoing');
+      if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+      var rFilename = 'test-report-' + (body.project || 'unknown').toLowerCase().replace(/\s/g,'-') + '-v' + (body.version || '1') + '.md';
+      var rPath = path.join(outDir, rFilename);
+
+      var items = body.items || [];
+      var passed    = items.filter(function(i) { return i.status === 'passed'; }).length;
+      var failed    = items.filter(function(i) { return i.status === 'failed'; }).length;
+      var retesting = items.filter(function(i) { return i.status === 'retesting'; }).length;
+      var pending   = items.filter(function(i) { return i.status === 'pending'; }).length;
+      var icons     = { passed: '✅', failed: '❌', pending: '⏳', retesting: '🔄' };
+      var today     = new Date().toISOString().split('T')[0];
+
+      var md = '# LitXus Test Report — ' + body.project + ' v' + body.version + '\n';
+      md += '<!-- STATUS: UPDATED — ' + today + ' -->\n\n';
+      md += '## Report Info\n';
+      md += '- **Project:** ' + body.project + '\n';
+      md += '- **Version:** v' + body.version + '\n';
+      md += '- **Date:** ' + today + '\n';
+      md += '- **Reviewed By:** LitXusDevHub\n\n---\n\n';
+      md += '## UAT Results\n\n';
+      md += '| # | Feature | Status | Notes |\n';
+      md += '|---|---------|--------|-------|\n';
+      items.forEach(function(item) {
+        var icon = icons[item.status] || '⏳';
+        var label = item.status.charAt(0).toUpperCase() + item.status.slice(1);
+        md += '| ' + item.id + ' | ' + item.feature + ' | ' + icon + ' ' + label + ' | ' + (item.notes || '') + ' |\n';
+      });
+      md += '\n---\n\n## Summary\n\n';
+      md += '| Total | Passed | Failed | Re-testing | Pending |\n';
+      md += '|-------|--------|--------|------------|---------|\n';
+      md += '| ' + items.length + ' | ' + passed + ' | ' + failed + ' | ' + retesting + ' | ' + pending + ' |\n\n';
+
+      var errorItems = items.filter(function(i) { return i.status === 'failed' && i.notes; });
+      if (errorItems.length) {
+        md += '---\n\n## Error Details\n\n';
+        errorItems.forEach(function(item) {
+          md += '### Feature ' + item.id + ': ' + item.feature + '\n';
+          md += '- **Status:** ❌ Failed\n';
+          md += '- **Notes:** ' + item.notes + '\n\n';
+        });
+      }
+
+      md += '---\n\n## Feedback to ' + body.project + '\n';
+      if (failed > 0) {
+        md += '- **Action Required:** ' + failed + ' item(s) failed — fix and notify DevHub for re-test.\n';
+      } else if (pending > 0 || retesting > 0) {
+        md += '- **Action Required:** Testing in progress.\n';
+      } else {
+        md += '- **Status:** All items passed — UAT cycle complete. ✅\n';
+      }
+
+      fs.writeFileSync(rPath, md, 'utf8');
+      console.log('[UAT] Report saved: ' + rFilename);
+
+      // Update uat-tracker in registry
+      var reg = readRegistry();
+      if (!reg.uatTracker) reg.uatTracker = [];
+      var overallResult = failed > 0 ? 'failed' : (pending > 0 || retesting > 0) ? 'pending' : 'passed';
+      var existing = reg.uatTracker.find(function(t) { return t.project === body.project && t.version === ('v' + body.version); });
+      var summary = passed + ' passed, ' + failed + ' failed, ' + pending + ' pending';
+      if (existing) {
+        existing.result = overallResult; existing.date = today; existing.notes = summary;
+      } else {
+        reg.uatTracker.push({ project: body.project, version: 'v' + body.version, date: today, result: overallResult, notes: summary });
+      }
+      writeRegistry(reg);
+
+      send(res, 200, { success: true, filename: rFilename });
     });
     return;
   }
@@ -369,6 +505,7 @@ function killPortsAndStart() {
   });
 }
 
+resetRegistryOnStartup();
 killPortsAndStart();
 
 server.on('listening', function() {

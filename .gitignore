@@ -1,0 +1,4 @@
+systems-registry.json
+devhub.log
+*.log
+node_modules/

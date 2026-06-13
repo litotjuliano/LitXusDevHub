@@ -315,6 +315,14 @@
   .toast.ok    { border-color: var(--running);  color: var(--running); }
   .toast.warn  { border-color: var(--building); color: var(--building); }
   .toast.fail  { border-color: var(--stopped);  color: var(--stopped); }
+
+  /* Footer */
+  .site-footer {
+    text-align: center; padding: 32px 24px 24px;
+    color: var(--text-muted); font-family: 'Space Mono', monospace;
+  }
+  .site-footer .footer-brand { font-size: 13px; font-weight: 600; color: var(--text); }
+  .site-footer .footer-ver   { font-size: 11px; margin-top: 4px; letter-spacing: 0.5px; }
 </style>
 </head>
 <body>
@@ -663,5 +671,11 @@ async function gitCommitAndPush() {
 loadAll(true);
 setInterval(() => loadAll(false), 15000); // silent poll every 15s — only re-renders on change
 </script>
+
+<footer class="site-footer">
+  <div class="footer-brand">LitXusDevHub powered by LitXus System</div>
+  <div class="footer-ver">LitXusDevHub Ver. 1.0</div>
+</footer>
+
 </body>
 </html>

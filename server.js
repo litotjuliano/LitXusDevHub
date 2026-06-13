@@ -218,7 +218,7 @@ function buildSystem(sys) {
         updateSystemStatus(sys.name, 'stopped');
         resolve({ success: false, message: stderr || error.message });
       } else {
-        updateSystemStatus(sys.name, 'running');
+        updateSystemStatus(sys.name, 'stopped');
         resolve({ success: true, message: sys.name + ' built', output: stdout });
       }
     });

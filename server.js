@@ -490,7 +490,27 @@ function killPortsAndStart() {
 }
 
 resetRegistryOnStartup();
+seedFromDefaults();
 killPortsAndStart();
+
+function seedFromDefaults() {
+  var reg = readRegistry();
+  if (reg.systems && reg.systems.length > 0) return; // already populated
+  var defaultsPath = path.join(BASE, 'systems-defaults.json');
+  if (!fs.existsSync(defaultsPath)) {
+    console.log('[INIT] systems-defaults.json not found — skipping seed.');
+    return;
+  }
+  try {
+    var defaults = JSON.parse(fs.readFileSync(defaultsPath, 'utf8'));
+    if (!defaults.systems || !defaults.systems.length) return;
+    reg.systems = defaults.systems;
+    writeRegistry(reg);
+    console.log('[INIT] systems array was empty — seeded ' + defaults.systems.length + ' systems from systems-defaults.json');
+  } catch (e) {
+    console.error('[INIT] Failed to seed from defaults: ' + e.message);
+  }
+}
 
 server.on('listening', function() {
   console.log('');

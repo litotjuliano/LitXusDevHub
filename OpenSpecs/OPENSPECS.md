@@ -153,7 +153,7 @@ This section documents every issue resolved during the first working session. Re
 
 **Fix:**
 - Port changed to `5085`
-- Start command changed to: `dotnet run --project src/NexusTravel.API --no-launch-profile --urls http://localhost:5085`
+- Start command changed to: `dotnet run --project src/LitXusTravel.API --no-launch-profile --urls http://localhost:5085`
 - `startEnv: { "ASPNETCORE_ENVIRONMENT": "Development" }` added so Swagger registers
 
 **Critical:** Serilog suppresses all startup console output. The API is running even when the terminal looks frozen. Wait 10–15 seconds after clicking START before checking Swagger.

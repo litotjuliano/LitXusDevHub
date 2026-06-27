@@ -1,0 +1,109 @@
+{
+  "systems": [
+    {
+      "name": "LitXusDevHub",
+      "port": 5000,
+      "status": "running",
+      "description": "Main orchestrator",
+      "isReadOnly": true
+    },
+    {
+      "name": "LitXusTravel",
+      "port": 5085,
+      "group": "LitXusTravel",
+      "status": "stopped",
+      "description": "Travel SaaS — .NET 8 API",
+      "startCommand": "dotnet run --project src/LitXusTravel.API --launch-profile http",
+      "startEnv": { "ASPNETCORE_ENVIRONMENT": "Development" },
+      "buildCommand": "dotnet build \"C:\\LitXus Systems\\LitXusTravel\\LitXusTravel.slnx\"",
+      "workingDirectory": "C:\\LitXus Systems\\LitXusTravel",
+      "frontendStartCommand": "npm run dev",
+      "frontendWorkingDirectory": "C:\\LitXus Systems\\LitXusTravel\\web\\admin-portal",
+      "frontendLabel": "OPEN ADMIN PORTAL",
+      "urls": {
+        "swagger": "http://localhost:5085/swagger",
+        "backend": "http://localhost:5085",
+        "frontend": "http://localhost:3000"
+      }
+    },
+    {
+      "name": "LitXusTravel-PublicSite",
+      "port": 3001,
+      "group": "LitXusTravel",
+      "status": "stopped",
+      "description": "Public website (Next.js)",
+      "startCommand": "npm run dev",
+      "startEnv": { "TURBOPACK": "0" },
+      "workingDirectory": "C:\\LitXus Systems\\LitXusTravel\\web\\public-website",
+      "urls": { "frontend": "http://localhost:3001" }
+    },
+    {
+      "name": "LitXusTravel-AgentDash",
+      "port": 3002,
+      "group": "LitXusTravel",
+      "status": "stopped",
+      "description": "Agent dashboard (Next.js)",
+      "startCommand": "npm run dev",
+      "startEnv": { "TURBOPACK": "0" },
+      "workingDirectory": "C:\\LitXus Systems\\LitXusTravel\\web\\tenant-dashboard",
+      "urls": { "frontend": "http://localhost:3002" }
+    },
+    {
+      "name": "Tenant-TravelPro",
+      "port": 3001,
+      "group": "Litxus Travel Tenant Websites",
+      "status": "stopped",
+      "description": "travelpro.lvh.me:3001",
+      "isReadOnly": true,
+      "urls": { "frontend": "http://travelpro.lvh.me:3001" }
+    },
+    {
+      "name": "Tenant-Wanderlust",
+      "port": 3001,
+      "group": "Litxus Travel Tenant Websites",
+      "status": "stopped",
+      "description": "wanderlust.lvh.me:3001",
+      "isReadOnly": true,
+      "urls": { "frontend": "http://wanderlust.lvh.me:3001" }
+    },
+    {
+      "name": "Tenant-AdventureSeek",
+      "port": 3001,
+      "group": "Litxus Travel Tenant Websites",
+      "status": "stopped",
+      "description": "adventureseek.lvh.me:3001",
+      "isReadOnly": true,
+      "urls": { "frontend": "http://adventureseek.lvh.me:3001" }
+    },
+    {
+      "name": "LitXusCount",
+      "port": 5280,
+      "group": "LitXusCount",
+      "status": "stopped",
+      "description": "ERP System — .NET 8 API",
+      "startCommand": "dotnet run --project src/LitXusCount.API --launch-profile http",
+      "startEnv": { "ASPNETCORE_ENVIRONMENT": "Development" },
+      "buildCommand": "dotnet build \"C:\\LitXus Systems\\LitXusCount\\LitXusCount.slnx\"",
+      "workingDirectory": "C:\\LitXus Systems\\LitXusCount",
+      "urls": { "backend": "http://localhost:5280" }
+    },
+    {
+      "name": "TIMD-Portal",
+      "port": 5118,
+      "group": "TIMD Portal",
+      "status": "stopped",
+      "description": "TIMD Portal — .NET 8 API",
+      "startCommand": "dotnet run --project TongilMooDo.API --launch-profile http",
+      "startEnv": { "ASPNETCORE_ENVIRONMENT": "Development" },
+      "buildCommand": "dotnet build \"C:\\LitXus Systems\\TIMD Portal\\TongilMooDo.slnx\"",
+      "workingDirectory": "C:\\LitXus Systems\\TIMD Portal",
+      "frontendStartCommand": "npm run dev",
+      "frontendWorkingDirectory": "C:\\LitXus Systems\\TIMD Portal\\timd-portal-frontend",
+      "frontendLabel": "OPEN FRONTEND",
+      "urls": {
+        "backend": "http://localhost:5118",
+        "frontend": "http://localhost:5173"
+      }
+    }
+  ]
+}
